@@ -1,6 +1,6 @@
 # GetFootballData
 
-This package contains classes to read data from Sofascore, Fotmob and Transfermarkt.
+This package contains classes to read data from Sofascore, FotMob and Transfermarkt.
 
 To make it easier league naming conventions are derived from other packages such as ScraperFC to make this package more compatible with others.
 
