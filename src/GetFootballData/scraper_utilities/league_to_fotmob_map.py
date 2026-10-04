@@ -1,0 +1,11 @@
+league_to_fotmob_dict = {'ENG-Premier League': ['Premier League', 'England'],
+                         'ESP-La Liga': ['LaLiga', 'Spain'],
+                         'FRA-Ligue 1': ['Ligue 1', 'France'],
+                         'ITA-Serie A': ['Serie A', 'Italy'],
+                         'GER-Bundesliga': ['Bundesliga', 'Germany'],
+                         'EUR-UEFA Champions League': ['Champions League', 'International'],
+                         'EUR-UEFA Europa League': ['Europa League', 'International'],
+                         'EUR-UEFA Conference League': ['Conference League', 'International'],
+                         'INT-EURO': ['EURO', 'International'],
+                         'INT-FIFA World Cup': ['FIFA World Cup', 'International'],
+                         }
