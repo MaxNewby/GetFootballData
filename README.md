@@ -74,7 +74,7 @@ This method scrapes statistical player data, for every player in the league for 
 
 A TransfermarktScraper object comes with the following methods:
 
-`transfermarkt_scraper.get_player_transfer_history(self, player_id: str) -> pd.DataFrame:`
+`get_player_transfer_history(self, player_id: str) -> pd.DataFrame:`
 
 This method returns a dataframe containing a player's transfer history, and data such as fees and contract durations for each transfer.
 
@@ -82,7 +82,7 @@ This method returns a dataframe containing a player's transfer history, and data
     return: A pandas dataframe containing a row for every recorded transfer a given player has had according to transfermarkt. If there is no history, an empty dataframe is returned. Rows include;
 
 
-`transfermarkt_scraper.get_player_overview_df(self, year: int, league: str)`
+`get_player_overview_df(self, year: int, league: str)`
 
 This method scrapes general player data such as transfermarkt ids, nationality and club for every player in the given league
 
