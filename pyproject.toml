@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GetFootballData"   # must be unique on PyPI
+version = "0.1.0"
+description = "Scrapers for FotMob, SofaScore and Transfermarkt"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE.md"]
+keywords = ["football", "soccer", "scraper", "analytics", "datasets"]
+authors = [{name = "Max Newby"}]
+dependencies = [
+    "beautifulsoup4>=4.15",
+    "curl_cffi>=0.16",
+    "numpy>=2.4",
+    "pandas>=3.0",
+    "requests>=2.34",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/MaxNewby/GetFootballData"
