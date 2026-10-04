@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GetFootballData"   # must be unique on PyPI
-version = "0.1.0"
+version = "0.1.1"
 description = "Scrapers for FotMob, SofaScore and Transfermarkt"
 readme = "README.md"
 requires-python = ">=3.11"
