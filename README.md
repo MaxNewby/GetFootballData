@@ -16,11 +16,9 @@ Created by Max Newby
 
 ### Sofascore_scraper.py:
 
-Create a SofascoreScraper object: `ss_scraper = SofascoreScraper()`
+A SofascoreScraper object comes with the following methods:
 
-The object then comes with the following methods:
-
-`ss_scraper.get_player_id_dicts(self, year: int, league_name: str) -> dict[int, dict[str, str | dict[int, str]]]`
+`get_player_id_dicts(self, year: int, league_name: str) -> dict[int, dict[str, str | dict[int, str]]]`
 
 This method returns a dictionary containing {team_id: team_data} pairs. Inside team_data, is the 'team_name' and another dictionary 'player_id_dict' that contains the {player_id, player_name} pairs.
 
@@ -30,7 +28,7 @@ This method returns a dictionary containing {team_id: team_data} pairs. Inside t
     return: a dictionary of team names mapping to dictionaries containing player ids and names in the format {team_id: {name: team_name, player_dict: {player_id: player_name, ...}}, ...}.
 
 
-`ss_scraper.get_player_metadata_df(self, year: int, league_name: str) -> pd.Dataframe`
+`get_player_metadata_df(self, year: int, league_name: str) -> pd.Dataframe`
 
 This method returns a dataframe containing general data about each player in the league for a given season.
 
@@ -39,7 +37,7 @@ This method returns a dataframe containing general data about each player in the
 
     :return: a pd.DataFrame containing general data about each player in a given league (height, preferred foot, etc.).
 
-`ss_scraper.get_player_stat_df(self, year: int, league_name: str, stat_type='total', specific_stats=None, position_list=None, nationality_code_list=None, team_id_list=None, min_appearances=None, age=None, age_bound='EQ', home_or_away_only=None, preferred_foot=None) -> pd.DataFrame:`
+`get_player_stat_df(self, year: int, league_name: str, stat_type='total', specific_stats=None, position_list=None, nationality_code_list=None, team_id_list=None, min_appearances=None, age=None, age_bound='EQ', home_or_away_only=None, preferred_foot=None) -> pd.DataFrame:`
 
 This method will return a dataframe containing statistical data for every player in the league for that given season. Responses can be filtered using the parameters.
 
@@ -60,11 +58,9 @@ This method will return a dataframe containing statistical data for every player
 
 ### fotmob_scraper.py:
 
-Create a FotmobScraper object: `fotmob_scraper = FotmobScraper()`
+A FotmobScraper object comes with the following methods:
 
-The object then comes with the following methods:
-
- `fotmob_scraper.get_player_data_df(self, year: int, league_name: str) -> pd.DataFrame`
+ `get_player_data_df(self, year: int, league_name: str) -> pd.DataFrame`
 
 This method scrapes statistical player data, for every player in the league for a given season
 
@@ -76,9 +72,7 @@ This method scrapes statistical player data, for every player in the league for 
 
 ### transfermarkt_scraper.py:
 
-Create a TransfermarktScraper object: `transfermarkt_scraper = TransfermarktScraper()`
-
-The object then comes with the following methods:
+A TransfermarktScraper object comes with the following methods:
 
 `transfermarkt_scraper.get_player_transfer_history(self, player_id: str) -> pd.DataFrame:`
 
