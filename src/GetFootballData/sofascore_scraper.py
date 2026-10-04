@@ -1,5 +1,6 @@
 import time
 import pandas as pd
+import numpy as np
 import random
 import json
 from bs4 import BeautifulSoup
@@ -201,7 +202,7 @@ class SofascoreScraper:
 
 
 
-    def get_player_id_dicts(self, year: int, league_name: str):
+    def get_player_id_dicts(self, year: int, league_name: str) -> dict[int, dict[str, str | dict[int, str]]]:
 
         '''
         :param year: Takes the starting year of the given season.
@@ -210,9 +211,6 @@ class SofascoreScraper:
         '''
 
         team_id_dict, league_id, season_id = self.__get_team_id_dict(year=year, league_name=league_name)
-
-        print(team_id_dict)
-
 
         player_id_dicts = {}
 
@@ -237,8 +235,58 @@ class SofascoreScraper:
         return player_id_dicts
 
 
+    def get_player_metadata_df(self, year: int, league_name: str) -> pd.DataFrame:
 
-    def get_player_stat_dataframe(self, year: int, league_name: str, stat_type='total', specific_stats=None, position_list=None, nationality_code_list=None, team_id_list=None, min_appearances=None, age=None, age_bound='EQ', home_or_away_only=None, preferred_foot=None) -> pd.DataFrame:
+        '''
+        :param year: starting year of the given season.
+        :param league_name: name of the league according to the given format.
+        :return: a pd.DataFrame containing general data about each player in a given league (height, preferred foot, etc.).
+        '''
+
+        player_id_dicts = self.get_player_id_dicts(year=year, league_name=league_name)
+
+        player_data_list = []
+
+        for team_id, player_dict in player_id_dicts.items():
+
+            team_name = player_dict['team_name']
+            player_id_dict = player_dict['player_id_dict']
+
+            for player_id, player_name in player_id_dict.items():
+
+                player_metadata_url = f'https://{root_site}/api/v1/player/{player_id}'
+
+                r = self.session.get(player_metadata_url, timeout=5)
+                metadata = r.json()
+
+                player = metadata.get('player', {})
+                country = player.get('country', {})
+
+                player_info = {
+                    'player_name': player.get('name', None),
+                    'sofascore_id': player.get('id', None),
+                    'dateOfBirth': player.get('dateOfBirth', None),
+                    'country_name': country.get('name', None),
+                    'league': league_name,
+                    'team_name': team_name,
+                    'team_id': team_id,
+                    'shirtNumber': player.get('jerseyNumber', None),
+                    'height': player.get('height', None),
+                    'weight': player.get('weight', None),
+                    'general_position': player.get('position', None),
+                    'position': player.get('positionsDetailed', [None])[0],
+                    'preferredFoot': player.get('preferredFoot', None),
+                    'marketValue': player.get('proposedMarketValue', None)
+                }
+
+                player_data_list.append(player_info)
+
+        player_metadata_df = pd.DataFrame(player_data_list)
+
+        return player_metadata_df
+
+
+    def get_player_stat_df(self, year: int, league_name: str, stat_type='total', specific_stats=None, position_list=None, nationality_code_list=None, team_id_list=None, min_appearances=None, age=None, age_bound='EQ', home_or_away_only=None, preferred_foot=None) -> pd.DataFrame:
 
         '''
         :param year: starting year of the league in the given format
@@ -255,9 +303,6 @@ class SofascoreScraper:
         :param preferred_foot: 'left', 'right'. Returns only players with the given preferred foot.
         :return: a dataframe containing all records of stat data for players in a given season and league
         '''
-
-        print(league_name)
-        print(f' ')
 
         try:
             league_data = league_to_sofascore_dict[league_name]
@@ -283,8 +328,6 @@ class SofascoreScraper:
         r = self.session.get(season_url, timeout=5)
 
         season_data = r.json()
-        print(season_data)
-        print(r.status_code)
 
         season_id = ''
 
@@ -427,56 +470,3 @@ class SofascoreScraper:
         player_data_dataframe = pd.DataFrame(player_data_list)
 
         return player_data_dataframe
-
-
-
-
-    def get_player_metadata_df(self, year: int, league_name: str):
-
-        '''
-        :param year: starting year of the given season
-        :param league_name: name of the league according to the given format
-        :return: a pd.DataFrame containing
-        '''
-
-        player_id_dicts = self.get_player_id_dicts(year=year, league_name=league_name)
-
-        player_data_list = []
-
-        for team_id, player_dict in player_id_dicts.items():
-
-            team_name = player_dict['team_name']
-            player_id_dict = player_dict['player_id_dict']
-
-            for player_id, player_name in player_id_dict.items():
-
-                player_metadata_url = f'https://{root_site}/api/v1/player/{player_id}'
-
-                r = self.session.get(player_metadata_url, timeout=5)
-                metadata = r.json()
-
-                player = metadata.get('player', {})
-                country = player.get('country', {})
-
-                player_info = {
-                    'player_name': player.get('name', None),
-                    'sofascore_id': player.get('id', None),
-                    'dateOfBirth': player.get('dateOfBirth', None),
-                    'country_name': country.get('name', None),
-                    'league': league_name,
-                    'team_name': team_name,
-                    'team_id': team_id,
-                    'shirtNumber': player.get('jerseyNumber', None),
-                    'height': player.get('height', None),
-                    'weight': player.get('weight', None),
-                    'general_position': player.get('position', None),
-                    'position': player.get('positionsDetailed', [None])[0],
-                    'preferredFoot': player.get('preferredFoot', None),
-                    'marketValue': player.get('proposedMarketValue', None)
-                }
-
-                player_data_list.append(player_info)
-
-        player_metadata_df = pd.DataFrame(player_data_list)
-
-        return player_metadata_df

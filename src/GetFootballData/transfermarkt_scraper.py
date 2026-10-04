@@ -6,7 +6,6 @@ import random
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
 from scraper_utilities.league_to_tm_map import league_to_tm_dict
-from scraper_utilities.year_maps import season_to_starting_year
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -288,3 +287,4 @@ class TransfermarktScraper:
         transfer_history_df = pd.DataFrame(transfer_history_list).set_index('player_id')
 
         return transfer_history_df
+
