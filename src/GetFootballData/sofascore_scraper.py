@@ -5,8 +5,8 @@ import random
 import json
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
-from scraper_utilities.league_to_sofascore_map import league_to_sofascore_dict
-from scraper_utilities.year_maps import year_to_sofascore_season
+from GetFootballData.scraper_utilities.league_to_sofascore_map import league_to_sofascore_dict
+from GetFootballData.scraper_utilities.year_maps import year_to_sofascore_season
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)

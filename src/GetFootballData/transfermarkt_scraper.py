@@ -5,7 +5,7 @@ import time
 import random
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
-from scraper_utilities.league_to_tm_map import league_to_tm_dict
+from GetFootballData.scraper_utilities.league_to_tm_map import league_to_tm_dict
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -45,7 +45,6 @@ class TransfermarktScraper:
         league_code = league_dict[1]
 
         url = f'https://{root_site}/{league_name}/tabelle/wettbewerb/{league_code}/saison_id/{str(year)}'
-        print(url)
 
         r = self.session.get(url)
 
@@ -287,4 +286,3 @@ class TransfermarktScraper:
         transfer_history_df = pd.DataFrame(transfer_history_list).set_index('player_id')
 
         return transfer_history_df
-

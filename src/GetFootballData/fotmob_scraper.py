@@ -3,8 +3,8 @@ import numpy as np
 import time
 import random
 from curl_cffi import requests as cffi_requests
-from scraper_utilities.league_to_fotmob_map import league_to_fotmob_dict
-from scraper_utilities.year_maps import year_to_fotmob_season
+from GetFootballData.scraper_utilities.league_to_fotmob_map import league_to_fotmob_dict
+from GetFootballData.scraper_utilities.year_maps import year_to_fotmob_season
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
