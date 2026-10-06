@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import time
 import random
+from tqdm import tqdm
 from curl_cffi import requests as cffi_requests
 from GetFootballData.scraper_utilities.league_to_fotmob_map import league_to_fotmob_dict
 from GetFootballData.scraper_utilities.year_maps import year_to_fotmob_season
@@ -15,11 +16,9 @@ class FotmobScraper:
 
     def __init__(self):
 
-        self.session = cffi_requests.Session(impersonate='chrome124')
+        self._session = None
 
-        self.session.headers.update({"accept": "application/json", "referer": f"https://{root_site}/"})
-
-        self.warm_up()
+        self.universal_sleep_value = 0.1
 
     def warm_up(self):
         """Request fotmob page to familiarise session with fotmob."""
@@ -28,6 +27,33 @@ class FotmobScraper:
             time.sleep(random.uniform(1.5, 3.0))
         except Exception as e:
             print(f"Warm-up handshake warning: {e}")
+
+    @property
+    def session(self):
+
+        if self._session is None:
+
+            self._session = cffi_requests.Session(impersonate='chrome124')
+
+            self._session.headers.update({"accept": "application/json", "referer": f"https://{root_site}/"})
+
+            self.warm_up()
+
+        return self._session
+
+    def close_session(self):
+        """Closes the cffi session when you don't need to use the object anymore."""
+        if self._session is not None:
+            self._session.close()
+            self._session = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close_session()
+
+
 
     def __get_team_id_dict(self, year=int, league_name=str):
 
@@ -40,9 +66,9 @@ class FotmobScraper:
         league_country_to_find = league_to_fotmob_dict[league_name]
 
         url = f'https://{root_site}/api/data/allLeagues?locale=en&country=GBR'
-        print(url)
 
-        r = self.session.get(url)
+        r = self.session.get(url, timeout=5)
+        time.sleep(self.universal_sleep_value)
         league_list_data = r.json()['countries']
 
         league_page_url = ''
@@ -62,7 +88,8 @@ class FotmobScraper:
         if league_id == '':
             raise Exception('No league_id found')
 
-        r = self.session.get(league_page_url)
+        r = self.session.get(league_page_url, timeout=5)
+        time.sleep(self.universal_sleep_value)
         league_data = r.json()
 
         #Get tournament id for given year
@@ -78,9 +105,11 @@ class FotmobScraper:
         #Get dictionary of {id, team_name}
         team_dict = {}
 
-        team_list = league_data['table'][0]['data']['table']['all']
-        no_of_teams = len(team_list)
-        for index, team in enumerate(team_list):
+        team_list: list[dict] = league_data['table'][0]['data']['table']['all']
+
+        team_progress_bar = tqdm(team_list, desc="Getting teams", unit="team")
+        for index, team in enumerate(team_progress_bar):
+            team_progress_bar.set_postfix_str(team['name'])  # Attach current player name next to the progress bar
             team_dict.update({team['id']: {
                 'name': team['name'],
                 'deduction': team['deduction'],
@@ -93,8 +122,7 @@ class FotmobScraper:
                 'goal_dif': team['goalConDiff'],
                 'points': team['pts'],
             }})
-            print(f'{index + 1}/{no_of_teams} teams read')
-        print('all teams read successfully')
+
 
         return team_dict, league_id, tournament_id
 
@@ -112,10 +140,11 @@ class FotmobScraper:
 
         player_dict = {}
 
-        for team_id, team_name in team_dict.items():
+        for team_id in team_dict:
 
             team_url = f'https://{root_site}/api/data/leagueseasondeepstats?lng=en-GB&id={league_id}&season={tournament_id}&type=players&stat=mins_played&teamId={team_id}'
-            r = self.session.get(team_url)
+            r = self.session.get(team_url, timeout=5)
+            time.sleep(self.universal_sleep_value)
             minutes_played_data = r.json()
 
             played_players = minutes_played_data['statsData']
@@ -125,6 +154,20 @@ class FotmobScraper:
 
         return player_dict
 
+    def get_table_data_df(self, year, league_name):
+
+        '''
+        This method returns the data from the given season's table as a dataframe.
+        Includes: Index: 'team_id', Columns: 'name', 'deduction', 'ongoing', 'played', 'wins', 'draws', 'losses', 'scored-conceded', 'goal_diff', 'points'.
+
+        :param year: the year that the season begun
+        :param league_name: The name of the league in the standardised format of the package
+        :return: a pd.DataFrame containing the data from the given season's table
+        '''
+
+        team_dict, league_id, tournament_id = self.__get_team_id_dict(year, league_name) #Basically all the heavy lifting as assembly of the data into a dictionary is done in here
+        table_dataframe = pd.DataFrame.from_dict(team_dict, orient='index')
+        return table_dataframe
 
 
     def get_player_data_df(self, year, league_name) -> pd.DataFrame:
@@ -140,19 +183,23 @@ class FotmobScraper:
         league_country_to_find = league_to_fotmob_dict[league_name]
         year_to_find = year_to_fotmob_season[year]
 
-
         player_dict = self.__get_player_id_dict(year, league_name)
 
         # All player rows will be added to this list before being assembled into a dataframe
         player_data_list = []
 
-        for player_id, player_name_mins_array in player_dict.items():
+        progress_bar = tqdm(player_dict.items(), desc="Getting players", unit="player")
+
+        for player_id, player_name_mins_array in progress_bar:
 
             player_name = player_name_mins_array[0]
             player_mins_played = player_name_mins_array[1]
 
+            progress_bar.set_postfix_str(f'{player_name}')  # Attach current player name next to the progress bar for each player looped through
+
             player_url = f'https://www.fotmob.com/api/data/playerData?id={player_id}'
-            r = self.session.get(player_url)
+            r = self.session.get(player_url, timeout=5)
+            time.sleep(self.universal_sleep_value)
             player_data = r.json()
             stat_seasons = player_data.get('statSeasons')
             if stat_seasons is None:
@@ -170,16 +217,9 @@ class FotmobScraper:
                 continue
 
             player_stats_url = f'https://www.fotmob.com/api/data/playerStats?playerId={player_id}&seasonId={entry_id}&isFirstSeason=false'
-            r = self.session.get(player_stats_url)
+            r = self.session.get(player_stats_url, timeout=5)
+            time.sleep(self.universal_sleep_value)
             player_stats_data = r.json()
-
-            print(player_name)
-            print(player_id)
-            print(player_stats_data.keys())
-            print(player_stats_url)
-            print(' ')
-
-
 
             player_data_dicts = player_stats_data.get('statsSection', {}).get('items', {})
             player_data_metadata_dict = player_stats_data.get('topStatCard', {}).get('items', {})
@@ -310,7 +350,6 @@ class FotmobScraper:
 
             player_data_list.append(player_data_dict)
 
-            #time.sleep(0.5)
 
         player_data_dataframe = pd.DataFrame(data=player_data_list)
 

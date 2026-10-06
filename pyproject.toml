@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "GetFootballData"   # must be unique on PyPI
-version = "0.1.1"
+version = "0.2.0"
 description = "Scrapers for FotMob, SofaScore and Transfermarkt"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,6 +18,7 @@ dependencies = [
     "numpy>=2.4",
     "pandas>=3.0",
     "requests>=2.34",
+    "tqdm>=4.70.1",
 ]
 
 [tool.setuptools.packages.find]

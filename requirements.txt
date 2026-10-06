@@ -3,3 +3,4 @@ curl_cffi==0.16.3
 numpy==2.4.6
 pandas==3.0.6
 requests==2.34.2
+tqdm==4.70.1

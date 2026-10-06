@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import random
 import json
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
 from GetFootballData.scraper_utilities.league_to_sofascore_map import league_to_sofascore_dict
@@ -16,19 +17,10 @@ root_site = 'www.sofascore.com'
 class SofascoreScraper:
 
     def __init__(self):
-        self.session = cffi_requests.Session()
 
-        self.session.headers.update({
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Origin": "https://sofascore.com",
-            "Referer": "https://sofascore.com/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site"
-        })
+        self._session = None
 
-        self.warm_up()
+        self.universal_sleep_value = 0.1
 
         self.stat_name_dict = {
             "Accurate crosses": "accurateCrosses",
@@ -141,18 +133,50 @@ class SofascoreScraper:
             'Total rating': 'totalRating',
             'TOTW Appearances': 'totwAppearances',
             'Touches': 'touches'
-            }
+        }
 
         self.concatenated_stat_names = "%2C".join(self.stat_name_dict.values())
 
     def warm_up(self):
         """Request sofascore page to familiarise session with sofascore."""
         try:
-            self.session.get("https://sofascore.com/", timeout=5)
+            self._session.get(f"https://{root_site}/", timeout=5)
             time.sleep(random.uniform(1.5, 3.0))
         except Exception as e:
             print(f"Warm-up handshake warning: {e}")
 
+    @property
+    def session(self):
+
+        if self._session is None:
+
+            self._session = cffi_requests.Session()
+
+            self._session.headers.update({
+                "Accept": "*/*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Origin": "https://sofascore.com",
+                "Referer": "https://sofascore.com/",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-site"
+            })
+
+            self.warm_up()
+
+        return self._session
+
+    def close_session(self):
+        """Closes the cffi session when you don't need to use the object anymore."""
+        if self._session is not None: #Ensure self._session doesn't exist already. Only close open session
+            self._session.close()
+            self._session = None #Reset to None incase session needs reopening
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close_session()
 
     def __get_team_id_dict(self, year: int, league_name: str):
 
@@ -173,6 +197,7 @@ class SofascoreScraper:
 
 
         r = self.session.get(url, timeout=5)
+        time.sleep(self.universal_sleep_value)
         soup = BeautifulSoup(r.text, "html.parser")
         next_data = soup.find("script", id="__NEXT_DATA__")
         data = json.loads(next_data.string)
@@ -189,13 +214,15 @@ class SofascoreScraper:
         url = f'https://{root_site}/api/v1/unique-tournament/{league_id}/season/{season_id}/statistics/info'
 
         r = self.session.get(url, timeout=5)
+        time.sleep(self.universal_sleep_value)
 
         team_id_dict = {}
 
-        team_data = r.json()
+        team_data: dict = r.json()
         team_data = team_data['teams']
 
-        for team in team_data:
+        team_progress_bar = tqdm(team_data, desc="Getting teams", unit="team")
+        for team in team_progress_bar:
             team_id_dict.update({team['id']: team['name']})
 
         return team_id_dict, league_id, season_id
@@ -219,6 +246,7 @@ class SofascoreScraper:
             player_stats_url = f'https://{root_site}/api/v1/team/{team_id}/unique-tournament/{league_id}/season/{season_id}/top-players/overall'
 
             r = self.session.get(player_stats_url, timeout=5)
+            time.sleep(0.1)
 
             data = r.json()
             data = data['topPlayers']['rating']
@@ -247,7 +275,8 @@ class SofascoreScraper:
 
         player_data_list = []
 
-        for team_id, player_dict in player_id_dicts.items():
+        player_progress_bar = tqdm(player_id_dicts.items(), desc="Getting metadata from squads", unit="squads")
+        for team_id, player_dict in player_progress_bar:
 
             team_name = player_dict['team_name']
             player_id_dict = player_dict['player_id_dict']
@@ -257,7 +286,9 @@ class SofascoreScraper:
                 player_metadata_url = f'https://{root_site}/api/v1/player/{player_id}'
 
                 r = self.session.get(player_metadata_url, timeout=5)
+                time.sleep(self.universal_sleep_value)
                 metadata = r.json()
+
 
                 player = metadata.get('player', {})
                 country = player.get('country', {})
@@ -326,6 +357,7 @@ class SofascoreScraper:
         season_url = f'https://www.sofascore.com/api/v1/unique-tournament/{league_id}/seasons'
 
         r = self.session.get(season_url, timeout=5)
+        time.sleep(self.universal_sleep_value)
 
         season_data = r.json()
 
@@ -346,10 +378,8 @@ class SofascoreScraper:
 
         limit = 100
         offset = 0
-
-        player_counter = 0
-
         last_page_complete = False
+        player_progress_bar = tqdm(desc="Getting players", unit=" players")
 
         while not last_page_complete:
 
@@ -441,6 +471,7 @@ class SofascoreScraper:
             '''
 
             r = self.session.get(base_player_stat_url, timeout=5)
+            time.sleep(self.universal_sleep_value)
 
             stat_data = r.json()
             stat_data = stat_data['results']
@@ -459,8 +490,7 @@ class SofascoreScraper:
 
             time.sleep(5)
 
-            player_counter += len(stat_data)
-            print(f'Total {player_counter} players read')
+            player_progress_bar.update(len(stat_data)) #Update the progress bar with the amount of players that are in stat_data
 
             if len(stat_data) < limit: #Break the while loop when the last page has been read, which will happen when less results are returned than the maximum
                 last_page_complete=True

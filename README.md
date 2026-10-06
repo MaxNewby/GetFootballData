@@ -4,15 +4,20 @@ This package contains classes to read data from Sofascore, FotMob and Transferma
 
 To make it easier league naming conventions are derived from other packages such as ScraperFC to make this package more compatible with others.
 
+><b>PLEASE USE THIS PACKAGE RESPONSIBLY</b>.
+> 
+> **Disclaimer:** This project is unofficial and is not affiliated with or endorsed by FotMob, SofaScore, Transfermarkt or any other data provider. You are responsible for making sure your use complies with each website's terms of service and with the laws that apply to you. The authors accept no liability for misuse of this software or for any resulting legal consequences or damages.
+
+
 Created by Max Newby
+
+## <u>Using the Package:</u>
 
 >[NOTE] about using the 'league_name' parameter
 >
 >
 >To see the format in which the league_name parameter should be entered in, check the dictionary keys in any _map.py file inside scraper_utilities.
 > Examples include; 'ENG-Premier League', 'ESP-La Liga', 'GER-Bundesliga'.
-
-## <u>Using the Package:</u>
 
 ### Sofascore_scraper.py:
 
@@ -89,4 +94,5 @@ This method scrapes general player data such as transfermarkt ids, nationality a
     year: starting year of the league (ex. 2025)
     league: league name according to the package's naming conventions (ex. 'ENG-Premier League', 'FRA-Ligue 1')
     return: a dataframe containing: player_name, player_id, club_name, nation. If data can't be found, an empty dataframe is returned.
+
 

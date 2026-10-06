@@ -3,6 +3,7 @@ import numpy as np
 import requests
 import time
 import random
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi_requests
 from GetFootballData.scraper_utilities.league_to_tm_map import league_to_tm_dict
@@ -16,11 +17,9 @@ class TransfermarktScraper:
 
     def __init__(self):
 
-        self.session = cffi_requests.Session(impersonate='chrome124')
+        self._session = None
 
-        self.session.headers.update({"accept": "application/json", "referer": f"https://{root_site}/"})
-
-        self.warm_up()
+        self.universal_sleep_value = 0.1
 
     def warm_up(self):
         """Request fotmob page to familiarise session with fotmob."""
@@ -29,6 +28,30 @@ class TransfermarktScraper:
             time.sleep(random.uniform(1.5, 3.0))
         except Exception as e:
             print(f"Warm-up handshake warning: {e}")
+
+    @property
+    def session(self):
+        if self._session is None:
+
+            self._session = cffi_requests.Session(impersonate='chrome124')
+
+            self._session.headers.update({"accept": "application/json", "referer": f"https://{root_site}/"})
+
+            self.warm_up()
+
+        return self._session
+
+    def close_session(self):
+        """Closes the cffi session when you don't need to use the object anymore."""
+        if self._session is not None:
+            self._session.close()
+            self._session = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close_session()
 
     def __get_player_id_df(self, year: int, league: str) -> pd.DataFrame:
 
@@ -46,7 +69,8 @@ class TransfermarktScraper:
 
         url = f'https://{root_site}/{league_name}/tabelle/wettbewerb/{league_code}/saison_id/{str(year)}'
 
-        r = self.session.get(url)
+        r = self.session.get(url, timeout=5)
+        time.sleep(self.universal_sleep_value)
 
         if not r:
             return pd.DataFrame()
@@ -69,14 +93,14 @@ class TransfermarktScraper:
 
         name_id_list = []
 
-        club_counter = 0
-
-        for club_acronym in club_acronym_list:
+        progressbar = tqdm(club_acronym_list, desc='Teams read', unit=' teams')
+        for club_acronym in progressbar:
 
             club_name = club_acronym[2]
-            #squad_url = f'https://www.transfermarkt.com/{club_acronym[0]}/kader/verein/{club_acronym[1]}/plus/0/galerie/0?saison_id={year}'
             squad_url = f'https://{root_site}/{club_acronym[0]}/kader/verein/{club_acronym[1]}/saison_id/{year}'
-            r = self.session.get(squad_url)
+            r = self.session.get(squad_url, timeout=5)
+            time.sleep(self.universal_sleep_value)
+
             soup = BeautifulSoup(r.text, "html.parser")
             table = soup.find('table', {'class': 'items'})
 
@@ -100,9 +124,6 @@ class TransfermarktScraper:
 
                 name_id_list.append((player_name, player_id, club_name, nation))
 
-            club_counter += 1
-            print(f'{club_counter}/{len(club_acronym_list)} teams complete.')
-
         name_id_df = pd.DataFrame(name_id_list, columns=['player_name', 'player_id', 'club_name', 'nation']).set_index('player_name')
 
         return name_id_df
@@ -119,7 +140,8 @@ class TransfermarktScraper:
 
         final_player_dataframe = pd.DataFrame()
 
-        for team in team_list:
+        player_progress_bar = tqdm(team_list, desc="Squads overviews read", unit="squads")
+        for team in player_progress_bar:
 
             team_player_ids = dataframe[dataframe['club_name'] == team]['player_id'].tolist()
 
@@ -134,7 +156,8 @@ class TransfermarktScraper:
             if team_players_url == base_players_url:
                 raise Exception(f'No team player ids found for {team}')
 
-            r = self.session.get(team_players_url)
+            r = self.session.get(team_players_url, timeout=5)
+            time.sleep(self.universal_sleep_value)
 
             player_data = r.json()['data']
 
@@ -210,7 +233,8 @@ class TransfermarktScraper:
 
         url = f"https://tmapi.transfermarkt.technology/transfer/history/player/{player_id}"
 
-        r = self.session.get(url) #Fetch transfer history page via URL
+        r = self.session.get(url, timeout=5) #Fetch transfer history page via URL
+        time.sleep(self.universal_sleep_value)
 
         print(player_id)
 
@@ -240,7 +264,8 @@ class TransfermarktScraper:
 
         for i in range(1,5):
             try:
-                club_r = self.session.get(club_url)  # Fetch club name data from transfermarkt api
+                club_r = self.session.get(club_url, timeout=5)  # Fetch club name data from transfermarkt api
+                time.sleep(self.universal_sleep_value)
                 club_data = club_r.json()["data"]
                 break
             except requests.exceptions.RequestException as e:
